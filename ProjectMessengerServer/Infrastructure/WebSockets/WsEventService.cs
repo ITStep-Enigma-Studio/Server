@@ -118,19 +118,38 @@ namespace ProjectMessengerServer.Infrastructure.WebSockets
 
         public async Task BroadcastMessage(int userId, string chatUid, Message message)
         {
-            var envelope = new WsEnvelope(
-                "new_message",
-                new()
-                {
-                    ["chat_uid"] = chatUid,
-                    ["message_id"] = message.Id.ToString(),
-                    ["message_text"] = message.Text,
-                    ["sender_id"] = _dbContext.UserProfiles.Where(p => p.UserId == message.SenderId).Select(p => p.Name).FirstOrDefault()!,
-                    ["created_at"] = message.CreatedAt.ToString("o")
-                },
-                null
-            );
-
+            WsEnvelope envelope = null!;
+            if (message.FileId != null)
+            {
+                envelope = new WsEnvelope(
+                    "new_message",
+                    new()
+                    {
+                        ["chat_uid"] = chatUid,
+                        ["message_id"] = message.Id.ToString(),
+                        ["message_text"] = message.Text,
+                        ["file_id"] = message.FileId.ToString(),
+                        ["sender_id"] = _dbContext.UserProfiles.Where(p => p.UserId == message.SenderId).Select(p => p.Name).FirstOrDefault()!,
+                        ["created_at"] = message.CreatedAt.ToString("o")
+                    },
+                    null
+                );
+            }
+            else
+            {
+                envelope = new WsEnvelope(
+                    "new_message",
+                    new()
+                    {
+                        ["chat_uid"] = chatUid,
+                        ["message_id"] = message.Id.ToString(),
+                        ["message_text"] = message.Text,
+                        ["sender_id"] = _dbContext.UserProfiles.Where(p => p.UserId == message.SenderId).Select(p => p.Name).FirstOrDefault()!,
+                        ["created_at"] = message.CreatedAt.ToString("o")
+                    },
+                    null
+                );
+            }
             //x.LastMessage != null! ? _dbContext.UserProfiles.Where(p => p.UserId == x.LastMessage.SenderId).Select(p => p.Name).FirstOrDefault() ?? "unknown" : null!,
 
             var users = await _chatService.GetChatMembers(chatUid);

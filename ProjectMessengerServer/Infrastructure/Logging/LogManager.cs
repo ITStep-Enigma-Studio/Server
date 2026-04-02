@@ -56,6 +56,8 @@ namespace ProjectMessengerServer.Infrastructure.Logging
 
                 _dbContext.Messages.Add(messageChat);
 
+                await _dbContext.SaveChangesAsync();
+
                 var chatUid = await _dbContext.Chats
                     .Where(c => c.Id == chatId)
                     .Select(c => c.Uid)
@@ -63,9 +65,6 @@ namespace ProjectMessengerServer.Infrastructure.Logging
 
                 await _eventService.BroadcastMessage(userId, chatUid!, messageChat);
             }
-
-            await _dbContext.SaveChangesAsync();
-
         }
 
         public static IEnumerable<Log> GetLogs(AppDbContext dbContext, int limit, int? offset = 0)

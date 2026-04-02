@@ -3,6 +3,7 @@ using System.Net;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using ProjectMessengerServer.Application.Services;
@@ -37,6 +38,11 @@ namespace ProjectMessengerServer
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+            builder.Services.Configure<FormOptions>(x =>
+            {
+                x.MultipartBodyLengthLimit = 50 * 1024 * 1024; // 50MB
+            });
+
             //var serviceProvider = new ServiceCollection().BuildServiceProvider();
 
             builder.Services.AddHttpContextAccessor();
@@ -49,6 +55,7 @@ namespace ProjectMessengerServer
             builder.Services.AddScoped<DeviceService>();
             builder.Services.AddScoped<ProfileService>();
             builder.Services.AddScoped<UserService>();
+            builder.Services.AddScoped<FileService>();
 
             builder.Services.AddScoped<WsHandler>();
             builder.Services.AddScoped<WsMessageService>();

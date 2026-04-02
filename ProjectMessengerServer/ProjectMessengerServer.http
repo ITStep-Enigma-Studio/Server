@@ -1,6 +1,0 @@
-@ProjectMessengerServer_HostAddress = http://localhost:5217
-
-GET {{ProjectMessengerServer_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

@@ -19,6 +19,7 @@ namespace ProjectMessengerServer.Infrastructure.Data
         public DbSet<Chat> Chats { get; set; } = null!;
         public DbSet<UserSequence> UserSequences { get; set; } = null!;
         public DbSet<Message> Messages { get; set; } = null!;
+        public DbSet<Domain.Entities.FileEntity> FileEntities { get; set; } = null!;
 
         public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options)
@@ -156,11 +157,23 @@ namespace ProjectMessengerServer.Infrastructure.Data
                 .HasForeignKey(m => m.SenderId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<Message>()
+                .HasOne(m => m.File)
+                .WithMany()
+                .HasForeignKey(m => m.FileId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             modelBuilder.Entity<Chat>()
                 .HasOne(c => c.LastMessage)
                 .WithMany()
                 .HasForeignKey(c => c.LastMessageId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Domain.Entities.FileEntity>()
+                .HasOne(f => f.Uploaded)
+                .WithMany()
+                .HasForeignKey(f => f.UploadedId)
+                .OnDelete(DeleteBehavior.Cascade);
 
         }
     }

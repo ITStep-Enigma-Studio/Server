@@ -42,7 +42,7 @@ namespace ProjectMessengerServer.Controllers
                 return BadRequest();
             }
 
-            if (chatType != "private" && chatType != "group")
+            if (chatType != "private" && chatType != "group" && chatType != "channel")
             {
                 return BadRequest();
             }
@@ -212,6 +212,28 @@ namespace ProjectMessengerServer.Controllers
             }
 
             return Ok(messages);
+        }
+
+        [Authorize]
+        [HttpGet("{chatUid}/members")]
+        public async Task<IActionResult> GetMembers(string chatUid)
+        {
+            var stringUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            stringUserId = int.TryParse(stringUserId, out int userId) ? userId.ToString() : null;
+            if (string.IsNullOrWhiteSpace(stringUserId))
+            {
+                return Unauthorized();
+            }
+            if (string.IsNullOrWhiteSpace(chatUid))
+            {
+                return BadRequest();
+            }
+            var members = await _chatService.GetChatMembersAsync(chatUid, userId);
+            if (members == null)
+            {
+                return BadRequest();
+            }
+            return Ok(members);
         }
     }
 }

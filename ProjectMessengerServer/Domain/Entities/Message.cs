@@ -8,7 +8,9 @@
         public int MessageInChatId { get; set; }
         public int SenderId { get; set; }
         public User Sender { get; set; } = null!;
-        public string Text { get; set; } = null!;
+        public Guid? FileId { get; set; }
+        public FileEntity? File { get; set; }
+        public string? Text { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }

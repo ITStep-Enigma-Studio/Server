@@ -389,8 +389,9 @@ namespace ProjectMessengerServer.Application.Services
                     m.MessageInChatId.ToString(),
                     _dbContext.UserProfiles.Where(p => p.UserId == m.SenderId).Select(p => p.PublicId).FirstOrDefault() ?? "unknown",
                     _dbContext.UserProfiles.Where(p => p.UserId == m.SenderId).Select(p => p.Name).FirstOrDefault() ?? "unknown",
-                    m.Text,
-                    m.CreatedAt.ToString()
+                    m.Text ?? "",
+                    m.CreatedAt.ToString(),
+                    m.FileId.ToString() ?? "null"
                 ))
                 .ToListAsync();
 
@@ -405,6 +406,13 @@ namespace ProjectMessengerServer.Application.Services
 
             await _dbContext.SaveChangesAsync();
 
+            foreach (var message in messages)
+            {
+                Console.WriteLine("--------------------------------------------------");
+                Console.WriteLine($"Message ID: {message.Message_id}, Sender: {message.Sender_name}, Text:\n{message.Message_text}\n\nCreated at: {message.Created_at}, FileId: {message.FileId ?? "null"}");
+                Console.WriteLine();
+            }
+
             return messages;
         }
         public async Task<List<int>> GetChatMembers(string chatUid)
@@ -413,6 +421,38 @@ namespace ProjectMessengerServer.Application.Services
                 .Where(cm => cm.Chat.Uid == chatUid)
                 .Select(cm => cm.UserId)
                 .ToListAsync();
+        }
+
+        public async Task<List<GetMembersResponse>> GetChatMembersAsync(string chatUid, int userId)
+        {
+            var user = await _dbContext.Users.FindAsync(userId);
+            if (string.IsNullOrWhiteSpace(chatUid))
+            {
+                return null!;
+            }
+            var chat = await _dbContext.Chats
+                .FirstOrDefaultAsync(c => c.Uid == chatUid);
+            if (chat == null)
+            {
+                return null!;
+            }
+            var member = await _dbContext.ChatMembers
+                .FirstOrDefaultAsync(cm => cm.ChatId == chat.Id && cm.UserId == user.Id);
+            if (member == null)
+            {
+                return null!;
+            }
+            var members = await _dbContext.ChatMembers
+                .Where(cm => cm.ChatId == chat.Id)
+                .Select(cm => new GetMembersResponse(
+                    _dbContext.UserProfiles.Where(p => p.UserId == cm.UserId).Select(p => p.PublicId).FirstOrDefault() ?? "unknown",
+                    _dbContext.UserProfiles.Where(p => p.UserId == cm.UserId).Select(p => p.Name).FirstOrDefault() ?? "unknown",
+                    cm.Role.ToString(),
+                    _dbContext.UserProfiles.Where(p => p.UserId == cm.UserId).Select(p => p.Bio).FirstOrDefault() ?? "unknown",
+                    cm.JoinedAt.ToString()
+                ))
+                .ToListAsync();
+            return members;
         }
     }
 }

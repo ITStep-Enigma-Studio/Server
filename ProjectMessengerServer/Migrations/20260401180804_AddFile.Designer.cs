@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ProjectMessengerServer.Infrastructure.Data;
@@ -11,9 +12,11 @@ using ProjectMessengerServer.Infrastructure.Data;
 namespace ProjectMessengerServer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260401180804_AddFile")]
+    partial class AddFile
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -103,9 +106,6 @@ namespace ProjectMessengerServer.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("Purpose")
-                        .HasColumnType("integer");
-
                     b.Property<long>("Size")
                         .HasColumnType("bigint");
 
@@ -113,16 +113,19 @@ namespace ProjectMessengerServer.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("UploadedId")
+                    b.Property<int>("UploadedBy")
                         .HasColumnType("integer");
 
                     b.Property<string>("Url")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("UploadedId");
+                    b.HasIndex("UserId");
 
                     b.ToTable("FileEntities");
                 });
@@ -205,6 +208,7 @@ namespace ProjectMessengerServer.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("Text")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
@@ -526,13 +530,13 @@ namespace ProjectMessengerServer.Migrations
 
             modelBuilder.Entity("ProjectMessengerServer.Domain.Entities.FileEntity", b =>
                 {
-                    b.HasOne("ProjectMessengerServer.Domain.Entities.User", "Uploaded")
+                    b.HasOne("ProjectMessengerServer.Domain.Entities.User", "User")
                         .WithMany()
-                        .HasForeignKey("UploadedId")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Uploaded");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ProjectMessengerServer.Domain.Entities.ForgotPassDevice", b =>
