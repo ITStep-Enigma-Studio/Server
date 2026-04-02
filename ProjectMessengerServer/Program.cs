@@ -33,7 +33,7 @@ namespace ProjectMessengerServer
             //services.AddDbContext<AppDbContext>(options =>
             //    options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
 
-            var builder = WebApplication.CreateBuilder(args);
+            var builder = WebApplication.CreateBuilder(args); 
 
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));

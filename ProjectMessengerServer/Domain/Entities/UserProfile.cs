@@ -7,7 +7,8 @@
         public string Name { get; set; } = null!;
         public string PublicId { get; set; } = null!;
         public string? PhoneNumber { get; set; } = null!;
-        public string? AvatarUrl { get; set; } = null!;
+        public Guid? AvatarFileId { get; set; }
+        public FileEntity? AvatarFile { get; set; }
         public DateTime Birthday { get; set; }
         public string? Bio { get; set; } = null!;
     }

@@ -1,4 +1,4 @@
 ﻿namespace ProjectMessengerServer.Application.DTO.Chat
 {
-    public record CreateChatRequest(string Chat_name, string Chat_type, List<string> Member_uids);
+    public record CreateChatRequest(string Chat_name, string Chat_type, List<string> Member_uids, string? AvatarChatId = null!);
 }

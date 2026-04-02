@@ -33,7 +33,7 @@ namespace ProjectMessengerServer.Application.Services
                 }
             }
 
-            var responses = usersProfiles.Select(up => new SearchUserResponse(up.PublicId, up.Name, up.Bio)).ToList();
+            var responses = usersProfiles.Select(up => new SearchUserResponse(up.PublicId, up.Name, up.Bio, up.AvatarFileId != null ? up.AvatarFileId.ToString() : null)).ToList();
 
             return responses;
         }

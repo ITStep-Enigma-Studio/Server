@@ -28,6 +28,7 @@ namespace ProjectMessengerServer.Application.Services
 
             string chatName = req.Chat_name;
             string chatType = req.Chat_type;
+            string? avatarChatId = req.AvatarChatId;
 
             var memberUids = req.Member_uids ?? new List<string>();
 
@@ -67,6 +68,7 @@ namespace ProjectMessengerServer.Application.Services
                 Uid = uid,
                 Type = chatType,
                 Name = chatName,
+                AvatarFileId = avatarChatId != null ? Guid.Parse(avatarChatId) : null,
                 CreatedAt = DateTime.UtcNow,
                 Members = new List<ChatMember>()
             };
@@ -231,7 +233,8 @@ namespace ProjectMessengerServer.Application.Services
                     x.LastMessage != null! ? _dbContext.UserProfiles.Where(p => p.UserId == x.LastMessage.SenderId).Select(p => p.Name).FirstOrDefault() ?? "unknown" : null!,
                     x.LastMessage != null! ? x.LastMessage.CreatedAt.ToString() : null!,
                     x.UnreadCount,
-                    x.LastMessage != null ? x.LastMessage.Id : -1
+                    x.LastMessage != null ? x.LastMessage.Id : -1,
+                    x.Chat.AvatarFileId != null ? x.Chat.AvatarFileId.ToString() : null
                 ))
                 .ToListAsync();
 
@@ -391,7 +394,8 @@ namespace ProjectMessengerServer.Application.Services
                     _dbContext.UserProfiles.Where(p => p.UserId == m.SenderId).Select(p => p.Name).FirstOrDefault() ?? "unknown",
                     m.Text ?? "",
                     m.CreatedAt.ToString(),
-                    m.FileId.ToString() ?? "null"
+                    m.FileId.ToString() ?? "null",
+                    _dbContext.UserProfiles.Where(p => p.UserId == m.SenderId).Select(p => p.AvatarFileId).FirstOrDefault() != null ? _dbContext.UserProfiles.Where(p => p.UserId == m.SenderId).Select(p => p.AvatarFileId).FirstOrDefault().ToString() : null
                 ))
                 .ToListAsync();
 
@@ -406,15 +410,9 @@ namespace ProjectMessengerServer.Application.Services
 
             await _dbContext.SaveChangesAsync();
 
-            foreach (var message in messages)
-            {
-                Console.WriteLine("--------------------------------------------------");
-                Console.WriteLine($"Message ID: {message.Message_id}, Sender: {message.Sender_name}, Text:\n{message.Message_text}\n\nCreated at: {message.Created_at}, FileId: {message.FileId ?? "null"}");
-                Console.WriteLine();
-            }
-
             return messages;
         }
+
         public async Task<List<int>> GetChatMembers(string chatUid)
         {
             return await _dbContext.ChatMembers
@@ -449,10 +447,43 @@ namespace ProjectMessengerServer.Application.Services
                     _dbContext.UserProfiles.Where(p => p.UserId == cm.UserId).Select(p => p.Name).FirstOrDefault() ?? "unknown",
                     cm.Role.ToString(),
                     _dbContext.UserProfiles.Where(p => p.UserId == cm.UserId).Select(p => p.Bio).FirstOrDefault() ?? "unknown",
-                    cm.JoinedAt.ToString()
+                    cm.JoinedAt.ToString(),
+                    _dbContext.UserProfiles.Where(p => p.UserId == cm.UserId).Select(p => p.AvatarFileId).FirstOrDefault() != null ? _dbContext.UserProfiles.Where(p => p.UserId == cm.UserId).Select(p => p.AvatarFileId).FirstOrDefault().ToString() : null
                 ))
                 .ToListAsync();
             return members;
+        }
+
+        public async Task<Result> UploadChatIconAsync(string chatUid, Guid fileId, int userId)
+        {
+            var user = await _dbContext.Users.FindAsync(userId);
+            if (string.IsNullOrWhiteSpace(chatUid))
+            {
+                return Result.Failure();
+            }
+
+            if (!await _dbContext.FileEntities.AnyAsync(f => f.Id == fileId))
+            {
+                return Result.Failure();
+            }
+
+            var chat = await _dbContext.Chats
+                .FirstOrDefaultAsync(c => c.Uid == chatUid);
+
+            if (chat == null)
+            {
+                return Result.Failure();
+            }
+            var member = await _dbContext.ChatMembers
+                .FirstOrDefaultAsync(cm => cm.ChatId == chat.Id && cm.UserId == user.Id);
+            if (member == null || (member.Role != ChatRole.Owner && member.Role != ChatRole.Admin))
+            {
+                return Result.Failure();
+            }
+
+            chat.AvatarFileId = fileId;
+            await _dbContext.SaveChangesAsync();
+            return Result.Success();
         }
     }
 }

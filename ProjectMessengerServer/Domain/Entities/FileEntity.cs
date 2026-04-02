@@ -21,7 +21,8 @@
             ChatImage,
             ChatVideo,
             ChatFile,
-            Avatar,
+            AvatarUser,
+            AvatarChat,
             Background
         }
 

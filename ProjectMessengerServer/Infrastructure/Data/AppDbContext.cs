@@ -97,6 +97,12 @@ namespace ProjectMessengerServer.Infrastructure.Data
                 .HasForeignKey<UserProfile>(t => t.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<UserProfile>()
+                .HasOne(up => up.AvatarFile)
+                .WithOne()
+                .HasForeignKey<UserProfile>(up => up.AvatarFileId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             modelBuilder.Entity<ForgotPassDevice>()
                 .HasOne(t => t.User)
                 .WithMany()
@@ -137,6 +143,18 @@ namespace ProjectMessengerServer.Infrastructure.Data
                 .HasIndex(c => c.Uid)
                 .IsUnique();
 
+            modelBuilder.Entity<Chat>()
+                .HasOne(c => c.LastMessage)
+                .WithMany()
+                .HasForeignKey(c => c.LastMessageId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Chat>()
+                .HasOne(c => c.AvatarFile)
+                .WithOne()
+                .HasForeignKey<Chat>(c => c.AvatarFileId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             modelBuilder.Entity<UserSequence>()
                 .HasKey(us => us.UserId);
 
@@ -161,12 +179,6 @@ namespace ProjectMessengerServer.Infrastructure.Data
                 .HasOne(m => m.File)
                 .WithMany()
                 .HasForeignKey(m => m.FileId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<Chat>()
-                .HasOne(c => c.LastMessage)
-                .WithMany()
-                .HasForeignKey(c => c.LastMessageId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Domain.Entities.FileEntity>()

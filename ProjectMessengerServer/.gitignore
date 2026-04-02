@@ -376,6 +376,8 @@ server.*.cer
 pfx_pwd.bin
 pfx_pwd.*.bin
 
+./wwwroot
+./wwwroot/*
 
 echo ".vs/" > .gitignore
 echo "[Bb]in/" >> .gitignore

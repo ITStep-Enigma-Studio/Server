@@ -70,16 +70,42 @@ namespace ProjectMessengerServer.Controllers
             // ❗ 3. Проверка MIME (ЧТО это за файл)
             var allowedMimeTypes = new[]
             {
-            "image/jpeg",
-            "image/png",
-            "image/webp",
-            "video/mp4",
-            "application/pdf",
-            "application/zip"
-        };
+                "image/jpeg",
+                "image/png",
+                "image/webp",
+                "image/heic",
+                "image/heic-sequence",
+                "audio/mpeg",
+                "video/mpeg",
+                "video/webm",
+                "video/ogg",
+                "application/pdf",
+                "application/zip",
+                "application/msword",
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "text/plain"
+            };
 
             if (!allowedMimeTypes.Contains(file.ContentType))
                 return BadRequest("Invalid file type");
+
+            if (parsedPurpose == FilePurpose.ChatImage && !file.ContentType.StartsWith("image/"))
+                return BadRequest("For ChatImage purpose, only image files are allowed");
+
+            if (parsedPurpose == FilePurpose.ChatVideo && !file.ContentType.StartsWith("video/"))
+                return BadRequest("For ChatVideo purpose, only video files are allowed");
+
+            if (parsedPurpose == FilePurpose.AvatarUser && (file.ContentType.ToString() != "image/jpeg" && file.ContentType.ToString() != "image/png"))
+                return BadRequest("For AvatarUser purpose, only image files are allowed");
+
+            if (parsedPurpose == FilePurpose.AvatarChat && (file.ContentType.ToString() != "image/jpeg" && file.ContentType.ToString() != "image/png"))
+                return BadRequest("For AvatarChat purpose, only image files are allowed");
+
+            if (parsedPurpose == FilePurpose.Background && (file.ContentType.ToString() != "image/jpeg" && file.ContentType.ToString() != "image/png"))
+                return BadRequest("For Background purpose, only image files are allowed");
+
+
 
             // ❗ 4. Генерация имени
             var extension = Path.GetExtension(file.FileName);
@@ -91,9 +117,19 @@ namespace ProjectMessengerServer.Controllers
                 FilePurpose.ChatImage => "uploads/chat/images",
                 FilePurpose.ChatVideo => "uploads/chat/videos",
                 FilePurpose.ChatFile => "uploads/chat/files",
-                FilePurpose.Avatar => "uploads/avatars",
+                FilePurpose.AvatarUser => "uploads/avatars",
+                FilePurpose.AvatarChat => "uploads/avatarsChat",
                 FilePurpose.Background => "uploads/backgrounds",
                 _ => "uploads/other"
+            };
+
+            // ❗ 7. Определяем доступ
+            var accessType = parsedPurpose switch
+            {
+                FilePurpose.AvatarUser => FileEntity.FileAccessType.Public,
+                FilePurpose.Background => FileEntity.FileAccessType.Public,
+                FilePurpose.AvatarChat => FileEntity.FileAccessType.Public,
+                _ => FileEntity.FileAccessType.Chat
             };
 
             var fullPath = Path.Combine(
@@ -113,14 +149,6 @@ namespace ProjectMessengerServer.Controllers
             {
                 await file.CopyToAsync(stream);
             }
-
-            // ❗ 7. Определяем доступ
-            var accessType = parsedPurpose switch
-            {
-                FilePurpose.Avatar => FileEntity.FileAccessType.Public,
-                FilePurpose.Background => FileEntity.FileAccessType.Public,
-                _ => FileEntity.FileAccessType.Chat
-            };
 
             // ❗ 8. Сохраняем в БД
             var fileEntity = new FileEntity

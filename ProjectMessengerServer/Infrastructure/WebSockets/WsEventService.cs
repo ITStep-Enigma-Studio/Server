@@ -167,5 +167,27 @@ namespace ProjectMessengerServer.Infrastructure.WebSockets
                 }
             }
         }
+
+        public async Task BroadcastChatUpdateIcon(string chatUid, Guid avatarFileId)
+        {
+            var envelope = new WsEnvelope(
+                "update_chat_icon",
+                new()
+                {
+                    ["chat_uid"] = chatUid,
+                    ["avatar_file_id"] = avatarFileId.ToString()
+                },
+                null
+            );
+            var users = await _chatService.GetChatMembers(chatUid);
+            foreach (var userIdInChat in users)
+            {
+                var sockets = _connections.GetConnections(userIdInChat);
+                foreach (var socket in sockets)
+                {
+                    await WsSender.SendAsync(socket, envelope);
+                }
+            }
+        }
     }
 }

@@ -79,7 +79,7 @@ namespace ProjectMessengerServer.Application.Services
 
             if (profile == null)
             {
-                DateTime.TryParse("2000-08-14", out DateTime birthday);
+                DateTime.TryParse("2000-01-01", out DateTime birthday);
                 profile = await _profileService.CreateUserProfileAsync(user, user.Email.Split('@')[0], birthday);
 
                 try

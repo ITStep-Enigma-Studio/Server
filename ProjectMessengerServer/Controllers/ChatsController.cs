@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using ProjectMessengerServer.Application.DTO.Chat;
 using ProjectMessengerServer.Application.Services;
 using ProjectMessengerServer.Infrastructure.WebSockets;
+using static ProjectMessengerServer.Domain.Entities.FileEntity;
 
 namespace ProjectMessengerServer.Controllers
 {
@@ -13,11 +14,13 @@ namespace ProjectMessengerServer.Controllers
     {
         private readonly ChatService _chatService;
         private readonly WsEventService _wsEventService;
+        private readonly FileService _fileService;
 
-        public ChatsController(ChatService chatService, WsEventService wsEventService)
+        public ChatsController(ChatService chatService, WsEventService wsEventService, FileService fileService)
         {
             _chatService = chatService;
             _wsEventService = wsEventService;
+            _fileService = fileService;
         }
 
         [Authorize]
@@ -137,7 +140,7 @@ namespace ProjectMessengerServer.Controllers
 
             var result = await _chatService.JoinChatAsync(chatUid, userId);
 
-            if(!result.IsSuccess)
+            if (!result.IsSuccess)
             {
                 return BadRequest();
             }
@@ -229,11 +232,68 @@ namespace ProjectMessengerServer.Controllers
                 return BadRequest();
             }
             var members = await _chatService.GetChatMembersAsync(chatUid, userId);
+
             if (members == null)
             {
                 return BadRequest();
             }
+
             return Ok(members);
+        }
+
+        [Authorize]
+        [HttpPut("{chatUid}/avatar")]
+        public async Task<IActionResult> UploadChatIcon(string chatUid, UpdateAvatarChatRequest req)
+        {
+            var avatarChatId = req.AvatarChatId;
+
+            var stringUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            stringUserId = int.TryParse(stringUserId, out int userId) ? userId.ToString() : null;
+            if (string.IsNullOrWhiteSpace(stringUserId))
+            {
+                return Unauthorized();
+            }
+
+            if (string.IsNullOrWhiteSpace(chatUid))
+            {
+                return BadRequest();
+            }
+
+            if (string.IsNullOrWhiteSpace(avatarChatId) || !Guid.TryParse(avatarChatId, out Guid avatarFileId))
+            {
+                return BadRequest();
+            }
+            var file = await _fileService.FindFileAsync(avatarFileId);
+
+            if (file == null || file.Size == 0)
+                return Forbid();
+
+            var hasPermissionResult = await _fileService.HasPermissionAsync(file, userId);
+
+            if (!hasPermissionResult.IsSuccess)
+            {
+                return Forbid();
+            }
+
+            if (file.Purpose != FilePurpose.AvatarChat)
+            {
+                return BadRequest("File is not a chat avatar");
+            }
+
+            if (file.Size > 5 * 1024 * 1024)
+            {
+                return BadRequest("File too large");
+            }
+
+            var result = await _chatService.UploadChatIconAsync(chatUid, avatarFileId, userId);
+
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result.Error);
+            }
+
+            await _wsEventService.BroadcastChatUpdateIcon(chatUid, avatarFileId);
+            return NoContent();
         }
     }
 }
