@@ -32,7 +32,7 @@ namespace ProjectMessengerServer.Controllers
             if (!Guid.TryParse(avatarUserId, out Guid avatarGuid))
                 return BadRequest();
 
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
             var file = await _fileService.FindFileAsync(Guid.Parse(avatarUserId));
 
@@ -56,6 +56,25 @@ namespace ProjectMessengerServer.Controllers
                 return BadRequest(result.Error);
 
             return NoContent();
+        }
+
+        [AllowAnonymous]
+        [HttpGet("{userUid}")]
+        public async Task<IActionResult> GetProfile(string userUid)
+        {
+            var userIdFromToken = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            int? currentUserId = null;
+            if (int.TryParse(userIdFromToken, out var parsedId))
+            {
+                currentUserId = parsedId;
+            }
+
+            var profile = await _profileService.GetProfileAsync(userUid, currentUserId);
+            if (profile == null)
+                return NotFound();
+
+            return Ok(profile);
         }
     }
 }

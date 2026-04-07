@@ -4,8 +4,16 @@
     {
         public int UserId { get; set; }
         public User User { get; set; } = null!;
-        public bool ShowEmail { get; set; }
-        public bool ShowPhoneNumber { get; set; }
-        public bool ShowLastSeen { get; set; }
+        public PrivacyLevel ShowEmail { get; set; }
+        public PrivacyLevel ShowPhoneNumber { get; set; }
+        public PrivacyLevel ShowLastSeen { get; set; }
+        public PrivacyLevel Birthday { get; set; }
+
+        public enum PrivacyLevel
+        {
+            Nobody = 0,
+            Contacts = 1,
+            Everybody = 2
+        }
     }
 }

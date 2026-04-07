@@ -20,7 +20,6 @@ namespace ProjectMessengerServer.Controllers
             _userService = userService;
         }
 
-        [Authorize]
         [HttpGet("search")]
         public async Task<IActionResult> SearchUser(string? information)
         {

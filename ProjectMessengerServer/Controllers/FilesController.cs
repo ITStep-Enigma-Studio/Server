@@ -79,6 +79,7 @@ namespace ProjectMessengerServer.Controllers
                 "video/mpeg",
                 "video/webm",
                 "video/ogg",
+                "video/mp4",
                 "application/pdf",
                 "application/zip",
                 "application/msword",

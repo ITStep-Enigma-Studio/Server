@@ -9,6 +9,8 @@
         public string? PhoneNumber { get; set; } = null!;
         public Guid? AvatarFileId { get; set; }
         public FileEntity? AvatarFile { get; set; }
+        public Guid? BackgroundFileId { get; set; }
+        public FileEntity? BackgroundFile { get; set; }
         public DateTime Birthday { get; set; }
         public string? Bio { get; set; } = null!;
     }

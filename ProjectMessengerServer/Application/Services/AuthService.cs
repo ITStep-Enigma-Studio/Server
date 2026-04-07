@@ -7,6 +7,7 @@ using ProjectMessengerServer.Domain.Entities;
 using ProjectMessengerServer.Infrastructure.Data;
 using ProjectMessengerServer.Infrastructure.Security;
 using ProjectMessengerServer.Infrastructure.Utilities;
+using static ProjectMessengerServer.Domain.Entities.UserPrivacy;
 
 namespace ProjectMessengerServer.Application.Services
 {
@@ -92,9 +93,10 @@ namespace ProjectMessengerServer.Application.Services
             var userPrivacy = new UserPrivacy
             {
                 User = user,
-                ShowEmail = false,
-                ShowPhoneNumber = false,
-                ShowLastSeen = true
+                ShowEmail = PrivacyLevel.Nobody,
+                ShowPhoneNumber = PrivacyLevel.Nobody,
+                ShowLastSeen = PrivacyLevel.Everybody,
+                Birthday = PrivacyLevel.Contacts
             };
 
             dbContext.UserSettings.Add(userSetting);
