@@ -5,6 +5,7 @@ using static ProjectMessengerServer.Domain.Entities.FileEntity;
 using System.Security.Claims;
 using ProjectMessengerServer.Application.Services;
 using ProjectMessengerServer.Application.DTO.File;
+using ProjectMessengerServer.Infrastructure.Files;
 
 namespace ProjectMessengerServer.Controllers
 {
@@ -28,7 +29,7 @@ namespace ProjectMessengerServer.Controllers
             var file = await _fileService.FindFileAsync(fileId);
 
             if (file == null)
-                return Forbid();
+                return NotFound();
 
             var permissionResult = await _fileService.HasPermissionAsync(file, userId);
 
@@ -44,7 +45,17 @@ namespace ProjectMessengerServer.Controllers
                 if (!System.IO.File.Exists(path))
                     return NotFound();
 
-                return PhysicalFile(path, file.Type);
+                var contentType = file.Type switch
+                {
+                    ".jpg" or ".jpeg" => "image/jpeg",
+                    ".png" => "image/png",
+                    ".webp" => "image/webp",
+                    ".mp4" => "video/mp4",
+                    ".pdf" => "application/pdf",
+                    _ => "application/octet-stream"
+                };
+
+                return PhysicalFile(path, contentType);
             }
 
             return Forbid();
@@ -67,29 +78,13 @@ namespace ProjectMessengerServer.Controllers
             if (!Enum.TryParse<FilePurpose>(purpose, true, out var parsedPurpose))
                 return BadRequest("Invalid purpose");
 
-            // ❗ 3. Проверка MIME (ЧТО это за файл)
-            var allowedMimeTypes = new[]
-            {
-                "image/jpeg",
-                "image/png",
-                "image/webp",
-                "image/heic",
-                "image/heic-sequence",
-                "audio/mpeg",
-                "video/mpeg",
-                "video/webm",
-                "video/ogg",
-                "video/mp4",
-                "application/pdf",
-                "application/zip",
-                "application/msword",
-                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                "text/plain"
-            };
+            var extension = Path.GetExtension(file.FileName).ToLower();
 
-            if (!allowedMimeTypes.Contains(file.ContentType))
-                return BadRequest("Invalid file type");
+            if (!FileValidator.IsValidExtension(extension))
+                return BadRequest("Invalid extension");
+
+            if (!await FileValidator.IsValidSignatureAsync(file, extension))
+                return BadRequest("Invalid file content");
 
             if (parsedPurpose == FilePurpose.ChatImage && !file.ContentType.StartsWith("image/"))
                 return BadRequest("For ChatImage purpose, only image files are allowed");
@@ -106,10 +101,7 @@ namespace ProjectMessengerServer.Controllers
             if (parsedPurpose == FilePurpose.Background && (file.ContentType.ToString() != "image/jpeg" && file.ContentType.ToString() != "image/png"))
                 return BadRequest("For Background purpose, only image files are allowed");
 
-
-
             // ❗ 4. Генерация имени
-            var extension = Path.GetExtension(file.FileName);
             var fileName = $"{Guid.NewGuid()}{extension}";
 
             // ❗ 5. Куда сохранять (зависит от purpose)

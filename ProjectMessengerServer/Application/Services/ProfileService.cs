@@ -89,7 +89,7 @@ namespace ProjectMessengerServer.Application.Services
             {
                 var user = await dbContext.Users.FirstOrDefaultAsync(i => i.Id == userId);
 
-                if (user != null)
+                if (user == null)
                 {
                     return null;
                 }
@@ -143,7 +143,7 @@ namespace ProjectMessengerServer.Application.Services
                 string backgroundFileId = userProfile.BackgroundFileId.ToString();
 
                 string phoneNumber = null;
-                if (searchUserPrivacy!.ShowPhoneNumber == PrivacyLevel.Everybody)
+                if (searchUserPrivacy.ShowPhoneNumber == PrivacyLevel.Everybody)
                 {
                     phoneNumber = userProfile.PhoneNumber;
                 }
@@ -164,7 +164,6 @@ namespace ProjectMessengerServer.Application.Services
                     birthday
                 );
             }
-
         }
     }
 }

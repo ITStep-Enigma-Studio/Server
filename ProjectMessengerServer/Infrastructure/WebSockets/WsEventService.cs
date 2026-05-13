@@ -93,6 +93,30 @@ namespace ProjectMessengerServer.Infrastructure.WebSockets
             }
         }
 
+        public async Task BroadcastChatInviteUser(string chatUid, int userId, string inviterPublicId)
+        {
+            var envelope = new WsEnvelope(
+                "invite_chat",
+                new()
+                {
+                    ["chat_uid"] = chatUid,
+                    ["user_public_id"] = _dbContext.UserProfiles.Where(p => p.UserId == userId).Select(p => p.Name).FirstOrDefault()!,
+                    ["user_name"] = _dbContext.UserProfiles.Where(p => p.UserId == userId).Select(p => p.Name).FirstOrDefault()!,
+                    ["inviter_public_id"] = inviterPublicId
+                },
+                null
+            );
+            var users = await _chatService.GetChatMembers(chatUid);
+            foreach (var userIdInChat in users)
+            {
+                var sockets = _connections.GetConnections(userIdInChat);
+                foreach (var socket in sockets)
+                {
+                    await WsSender.SendAsync(socket, envelope);
+                }
+            }
+        }
+
         public async Task BroadcastChatLeaveUser(string chatUid, int userId)
         {
             var envelope = new WsEnvelope(

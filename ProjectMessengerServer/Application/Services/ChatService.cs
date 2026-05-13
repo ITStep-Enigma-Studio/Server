@@ -63,15 +63,17 @@ namespace ProjectMessengerServer.Application.Services
                 uid = RandomStringGenerator.GenerateRandomString(6);
             }
 
+
             var chat = new Chat
             {
                 Uid = uid,
                 Type = chatType,
                 Name = chatName,
-                AvatarFileId = avatarChatId != null ? Guid.Parse(avatarChatId) : null,
+                AvatarFileId = string.IsNullOrEmpty(avatarChatId) ? null : Guid.Parse(avatarChatId),
                 CreatedAt = DateTime.UtcNow,
                 Members = new List<ChatMember>()
             };
+
 
             ChatMember chatMember;
 
@@ -240,6 +242,32 @@ namespace ProjectMessengerServer.Application.Services
 
             return result;
         }
+        
+        public async Task<List<SearchChatResponse>> SearchByChatNameOrPublicIdAsync(string information)
+        {
+            var chats = await _dbContext.Chats
+                .Where(c => c.Name.Contains(information) || c.Uid.Contains(information))
+                .Include(c => c.Members)
+                .ToListAsync();
+
+            foreach (var chat in chats)
+            {
+                if (chat.Type == "private")
+                {
+                    chats.Remove(chat);
+                }
+            }
+
+            var responses = chats.Select(c => new SearchChatResponse(
+                c.Uid,
+                c.Name,
+                c.Type,
+                c.Members.Count,
+                c.AvatarFileId != null ? c.AvatarFileId.ToString() : null
+            )).ToList();
+
+            return responses;
+        }
 
         public async Task<Result> JoinChatAsync(string chatUid, int userId)
         {
@@ -276,6 +304,63 @@ namespace ProjectMessengerServer.Application.Services
             {
                 ChatId = chat.Id,
                 UserId = user.Id,
+                JoinedAt = DateTime.UtcNow,
+                Role = ChatRole.Member
+            };
+
+            _dbContext.ChatMembers.Add(chatMember);
+            chat.Members.Add(chatMember);
+            await _dbContext.SaveChangesAsync();
+
+            return Result.Success();
+        }
+
+        public async Task<Result> InviteChatAsync(string chatUid, int userId, string userInviteUid)
+        {
+            var user = await _dbContext.Users.FindAsync(userId);
+
+            if (string.IsNullOrWhiteSpace(chatUid) || string.IsNullOrWhiteSpace(userInviteUid) || user == null)
+            {
+                return Result.Failure();
+            }
+
+            var chat = await _dbContext.Chats
+                .Include(c => c.Members)
+                .FirstOrDefaultAsync(c => c.Uid == chatUid);
+
+            if (chat == null) 
+            { 
+                return Result.Failure(); 
+            };
+
+            var userInvite = await _dbContext.UserProfiles
+                .FirstOrDefaultAsync(up => up.PublicId == userInviteUid);
+
+            if (userInvite == null)
+            {
+                return Result.Failure();
+            }
+
+            var checkMember = await _dbContext.ChatMembers
+                .FirstOrDefaultAsync(cm => cm.UserId == user.Id && cm.Chat.Uid == chatUid);
+
+            if (checkMember == null || chat.Type == "private")
+            {
+                return Result.Failure();
+            }
+
+            var checkInviteMember = await _dbContext.ChatMembers
+                .FirstOrDefaultAsync(cm => cm.UserId == userInvite.UserId && cm.Chat.Uid == chatUid);
+
+            if (checkInviteMember != null)
+            {
+                return Result.Failure();
+            }
+
+            var chatMember = new ChatMember
+            {
+                ChatId = chat.Id,
+                UserId = userInvite.UserId,
                 JoinedAt = DateTime.UtcNow,
                 Role = ChatRole.Member
             };
@@ -403,7 +488,7 @@ namespace ProjectMessengerServer.Application.Services
                 .OrderByDescending(m => m.Id)
                 .FirstOrDefault();
 
-            if (member != null && lastMessage != null && member.LastReadMessageId < lastMessage.Id)
+            if (member != null && lastMessage != null && (member.LastReadMessageId < lastMessage.Id || member.LastReadMessage == null))
             {
                 member.LastReadMessageId = lastMessage.Id;
             }

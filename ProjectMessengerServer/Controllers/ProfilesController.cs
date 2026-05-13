@@ -72,7 +72,9 @@ namespace ProjectMessengerServer.Controllers
 
             var profile = await _profileService.GetProfileAsync(userUid, currentUserId);
             if (profile == null)
+            {
                 return NotFound();
+            }
 
             return Ok(profile);
         }

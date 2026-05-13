@@ -104,7 +104,6 @@ namespace ProjectMessengerServer.Controllers
                 return Unauthorized();
             }
 
-
             if (!limit.HasValue || limit <= 0)
             {
                 limit = 10;
@@ -117,6 +116,25 @@ namespace ProjectMessengerServer.Controllers
             }
 
             return Ok(chatsResponses);
+        }
+
+        [Authorize]
+        [HttpGet("search")]
+        public async Task<IActionResult> SearchChat(string? information)
+        {
+            if (string.IsNullOrWhiteSpace(information))
+            {
+                return BadRequest();
+            }
+
+            var chats = await _chatService.SearchByChatNameOrPublicIdAsync(information);
+
+            if (chats == null || !chats.Any())
+            {
+                return NotFound();
+            }
+
+            return Ok(chats);
         }
 
         [Authorize]
@@ -146,6 +164,43 @@ namespace ProjectMessengerServer.Controllers
             }
 
             await _wsEventService.BroadcastChatJoinUser(chatUid, userId);
+
+            return NoContent();
+        }
+
+        [Authorize]
+        [HttpPost("{chatUid}/invite")]
+        public async Task<IActionResult> InviteChat(string chatUid, InviteChatRequest req)
+        {
+            var stringUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            stringUserId = int.TryParse(stringUserId, out int userId) ? userId.ToString() : null;
+
+            string inviteUserId = req.UserPublicId!;
+
+            if (string.IsNullOrWhiteSpace(inviteUserId))
+            {
+                return BadRequest();
+            }
+
+            if (string.IsNullOrWhiteSpace(stringUserId))
+            {
+                return Unauthorized();
+            }
+
+            if (string.IsNullOrWhiteSpace(chatUid))
+            {
+                return BadRequest();
+            }
+
+            var result = await _chatService.InviteChatAsync(chatUid, userId, inviteUserId);
+
+            if (!result.IsSuccess)
+            {
+                return BadRequest();
+            }
+
+            await _wsEventService.BroadcastChatInviteUser(chatUid, userId, inviteUserId);
 
             return NoContent();
         }
