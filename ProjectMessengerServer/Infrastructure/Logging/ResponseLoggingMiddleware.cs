@@ -1,5 +1,7 @@
-﻿using ProjectMessengerServer.Domain.Entities;
+﻿using System.Text;
+using ProjectMessengerServer.Domain.Entities;
 using ProjectMessengerServer.Infrastructure.Data;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace ProjectMessengerServer.Infrastructure.Logging
 {
@@ -26,27 +28,53 @@ namespace ProjectMessengerServer.Infrastructure.Logging
                 return;
             }
 
+
+            if (context.Request.Path.Value?.Contains("77j970") == true ||
+                context.Request.Path.StartsWithSegments("/chats/message"))
+            {
+                await _next(context);
+                return;
+            }
+
             var originalBodyStream = context.Response.Body;
 
             using var responseBody = new MemoryStream();
             context.Response.Body = responseBody;
+            string ip = "Unknown";
 
-            string ip;
+            string text = "<hidden>";
 
             try
             {
+                // Передаем управление дальше по конвейеру для генерации ответа
                 await _next(context);
 
+                // 2. ИСПРАВЛЕНО: Проверяем Content-Type ПОСЛЕ выполнения _next
+                var contentType = context.Response.ContentType;
+                bool isJson = contentType?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true;
+
+
                 responseBody.Seek(0, SeekOrigin.Begin);
-                var text = await new StreamReader(responseBody).ReadToEndAsync();
 
-                ip = context.Connection.RemoteIpAddress?.ToString();
+                // ИСПРАВЛЕНО: LeaveOpen: true, чтобы не уничтожить MemoryStream раньше времени
+                using (var reader = new StreamReader(responseBody, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 1024, leaveOpen: true))
+                {
+                    text = await reader.ReadToEndAsync();
+                }
 
+                // Если вам всё же нужно логировать JSON-body, раскомментируйте строку ниже. 
+                // Сейчас у вас везде написано <hidden>.
+                // text = text; 
+
+                ip = context.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+
+                // Возвращаем данные обратно в оригинальный поток ответа клиенту
                 responseBody.Seek(0, SeekOrigin.Begin);
                 await responseBody.CopyToAsync(originalBodyStream);
             }
             finally
             {
+                // Обязательно восстанавливаем поток, даже при ошибках
                 context.Response.Body = originalBodyStream;
             }
 
@@ -65,7 +93,8 @@ namespace ProjectMessengerServer.Infrastructure.Logging
                 Console.WriteLine($"{header.Key}: {header.Value}");
             }
 
-            Console.WriteLine("Body: <hidden>");
+            //Console.WriteLine("Body: <hidden>");
+            Console.WriteLine($"Body: {text}");
             Console.WriteLine("-------------------------");
 
             Console.ResetColor();
@@ -80,7 +109,7 @@ namespace ProjectMessengerServer.Infrastructure.Logging
             {
                 messageLog += $"{header.Key}: {header.Value} \n";
             }
-            messageLog += "Body: <hidden> \n";
+            messageLog += $"Body: {text} \n";
             messageLog += "------------------------";
 
 

@@ -95,31 +95,18 @@ namespace ProjectMessengerServer.Application.Services
                 }
 
                 string name = userProfile.Name;
-                string bio = null;
-                if (userProfile.Name == null)
-                {
-                    name = userProfile.Name;
-                }
+                string bio = userProfile.Bio;
 
-                string avatarFileId = null;
-                if (userProfile.AvatarFileId == null)
-                {
-                    avatarFileId = userProfile.AvatarFileId.ToString()!;
-                }
+                string avatarFileId = userProfile.AvatarFileId.ToString();
+                string backgroundFileId = userProfile.BackgroundFileId.ToString();
 
-                string backgroundFileId = null;
-                if (userProfile.BackgroundFileId == null)
-                {
-                    backgroundFileId = userProfile.BackgroundFileId.ToString()!;
-                }
-
-                string phoneNumber = null;
+                string phoneNumber = null!;
                 if (searchUserPrivacy!.ShowPhoneNumber == PrivacyLevel.Everybody && userProfile.PhoneNumber != null)
                 {
                     phoneNumber = userProfile.PhoneNumber;
                 }
 
-                string birthday = null;
+                string birthday = null!;
                 if (searchUserPrivacy.Birthday == PrivacyLevel.Everybody && userProfile.Birthday.ToString() != null)
                 {
                     birthday = userProfile.Birthday.ToString();

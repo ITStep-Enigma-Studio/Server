@@ -167,6 +167,10 @@ namespace ProjectMessengerServer.Application.Services
                 return Result.Failure();
             }
 
+            chat.LastMessageId = null;
+
+            await _dbContext.SaveChangesAsync();
+
             var chatMember = await _dbContext.ChatMembers
                 .Where(cm => cm.ChatId == chat.Id)
                 .ToListAsync();

@@ -28,6 +28,26 @@ namespace ProjectMessengerServer.Infrastructure.Logging
                 return;
             }
 
+            if (context.Request.Path.Value?.Contains("77j970") == true ||
+                context.Request.Path.StartsWithSegments("/chats/message"))
+            {
+                await _next(context);
+                return;
+            }
+
+            context.Request.EnableBuffering();
+
+            string requestBodyText = string.Empty;
+
+            // 2. Читаем тело запроса, оставляя поток открытым (leaveOpen: true)
+            using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 1024, leaveOpen: true))
+            {
+                requestBodyText = await reader.ReadToEndAsync();
+
+                // 3. КРИТИЧЕСКИ ВАЖНО: Возвращаем указатель в начало потока
+                context.Request.Body.Position = 0;
+            }
+
             var ip = context.Connection.RemoteIpAddress?.ToString();
 
             Console.ForegroundColor = ConsoleColor.Green;
@@ -44,7 +64,7 @@ namespace ProjectMessengerServer.Infrastructure.Logging
 
             context.Request.EnableBuffering();
 
-            Console.WriteLine("Body: <hidden>");
+            Console.WriteLine($"Body: {requestBodyText}");
             Console.WriteLine("------------------------");
 
             Console.ResetColor();
@@ -59,7 +79,7 @@ namespace ProjectMessengerServer.Infrastructure.Logging
                 message += $"{header.Key}: {header.Value} \n";
             }
 
-            message += "Body: <hidden> \n";
+            message += $"Body: {requestBodyText} \n";
             message += "------------------------";
 
             await _logManager.AddLog("INFO", message);
